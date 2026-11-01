@@ -1,0 +1,14 @@
+# Local dev only: mount source code so edits are visible without rebuilding the image.
+# docker compose picks this file up automatically.
+services:
+  app:
+    volumes:
+      - ./public:/app/public:ro
+      - ./src:/app/src:ro
+      - ./bin:/app/bin:ro
+
+  worker:
+    volumes:
+      - ./public:/app/public:ro
+      - ./src:/app/src:ro
+      - ./bin:/app/bin:ro

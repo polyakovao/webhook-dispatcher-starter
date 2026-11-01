@@ -24,9 +24,25 @@ if ($method === 'GET' && $path === '/health') {
 
 // Body: {"url": "...", "type": "order.created", "payload": {...}}
 if ($method === 'POST' && $path === '/events') {
-    // TODO(candidate): validate input, insert into `events`, return 202 {"id": "<uuid>"}.
-    http_response_code(501);
-    echo json_encode(['error' => 'not implemented']);
+    $body = file_get_contents('php://input');
+    $data = json_decode($body, true);
+
+    $url = $data['url'] ?? null;
+    $type = $data['type'] ?? null;
+    $payload = $data['payload'] ?? null;
+
+    $sql = 'INSERT INTO events (target_url, event_type, payload) '
+          .' VALUES (:url, :type, :payload) RETURNING id';
+
+    $stmt = Db::pdo()->prepare($sql);
+    $stmt->execute([
+        'url' => $url,
+        'type' => $type,
+        'payload' => json_encode($payload),
+    ]);
+
+    http_response_code(202);
+    echo json_encode(['id' => $stmt->fetchColumn()]); //id of inserted rec
     exit;
 }
 
