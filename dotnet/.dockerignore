@@ -1,0 +1,10 @@
+**/bin
+**/obj
+.git
+.github
+tests
+db
+receiver
+docker-compose.yml
+smoke.sh
+*.md
