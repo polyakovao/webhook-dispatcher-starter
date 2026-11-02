@@ -44,4 +44,4 @@ In Claude Code: `/test`, `/test functional`, `/test e2e`, `/test all`. Details a
 
 ## Stop
 
-`docker compose down` stops the stack and keeps the data. `docker compose down -v` also deletes the DB volume.
+`docker compose stop` stops the stack and keeps the data; `docker compose up -d` starts it again. `docker compose down` removes the containers, and the next `up` starts with an empty DB: Postgres keeps its data in an anonymous volume, and a new container doesn't pick it up. `docker compose down -v` also deletes that volume.
