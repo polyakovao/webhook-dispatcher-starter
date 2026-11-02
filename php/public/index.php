@@ -8,6 +8,13 @@ use App\Db;
 
 header('Content-Type: application/json');
 
+// Any uncaught error: details to the log, a plain 500 to the client (not a 200 with a stack trace).
+set_exception_handler(function (Throwable $e): void {
+    error_log((string) $e);
+    http_response_code(500);
+    echo json_encode(['error' => 'internal error']);
+});
+
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
@@ -25,11 +32,20 @@ if ($method === 'GET' && $path === '/health') {
 // Body: {"url": "...", "type": "order.created", "payload": {...}}
 if ($method === 'POST' && $path === '/events') {
     $body = file_get_contents('php://input');
-    $data = json_decode($body, true);
+    // objects stay objects: with `true`, {} would become []
+    $data = json_decode($body);
 
-    $url = $data['url'] ?? null;
-    $type = $data['type'] ?? null;
-    $payload = $data['payload'] ?? null;
+    $url = $data->url ?? null;
+    $type = $data->type ?? null;
+    $payload = $data->payload ?? null;
+
+    $scheme = is_string($url) ? parse_url($url, PHP_URL_SCHEME) : null;
+    if (!filter_var($url, FILTER_VALIDATE_URL) || !in_array($scheme, ['http', 'https'], true)
+        || !is_string($type) || $type === '' || !$payload instanceof stdClass) {
+        http_response_code(400);
+        echo json_encode(['error' => 'expected {"url": "http(s)://...", "type": "...", "payload": {...}}']);
+        exit;
+    }
 
     $sql = 'INSERT INTO events (target_url, event_type, payload) '
           .' VALUES (:url, :type, :payload) RETURNING id';

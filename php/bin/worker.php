@@ -9,6 +9,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use App\Backoff; // phpcs:ignore
 use App\Db;      // phpcs:ignore
+use App\Outcome; // phpcs:ignore
 use App\Signer;  // phpcs:ignore
 
 $running = true;
@@ -22,6 +23,10 @@ if (function_exists('pcntl_async_signals')) {
 }
 
 $secret = getenv('WEBHOOK_SECRET');
+if (!$secret) {
+    fwrite(STDERR, "WEBHOOK_SECRET is not set\n");
+    exit(1);
+}
 $pdo = Db::pdo();
 
 fwrite(STDOUT, "worker started\n");
@@ -77,8 +82,7 @@ while ($running) {
     } else {
         $attempts++;
         $error = $code ? "http $code" : curl_error($ch);
-        $retryable = $code == 0 || $code == 408 || $code == 429 || $code >= 500; // 410 и остальные 4xx - dead
-        $status = $retryable && $attempts < 8 ? 'retry' : 'dead';
+        $status = Outcome::status($code, $attempts);
         $delay = Backoff::seconds($attempts);
     }
 
